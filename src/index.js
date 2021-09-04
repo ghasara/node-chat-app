@@ -1,5 +1,7 @@
 const path = require('path')
 const http = require('http')
+const fs = require('fs')
+const logger = require('logger').createLogger('development.log')
 const express = require('express')
 const socketio = require('socket.io')
 const Filter = require('bad-words')
@@ -11,6 +13,7 @@ const server = http.createServer(app)
 const io = socketio(server)
 
 const port = process.env.PORT || 3000
+
 const publicDirectoryPath = path.join(__dirname, '../public')
 
 app.use(express.static(publicDirectoryPath))
@@ -46,6 +49,8 @@ io.on('connection', (socket) => {
         }
 
         io.to(user.room).emit('message', generateMessage(user.username, message))
+        logger.info(user.username, ' : ', message)
+        saveToFile(user.username, message)
         callback()
     })
 
@@ -71,3 +76,24 @@ io.on('connection', (socket) => {
 server.listen(port, () => {
     console.log(`Server is up on port ${port}!`)
 })
+
+saveToFile = (user, message) => {
+    const data1 = loadNotes()
+    const dataJSON = {
+        userna: user,
+        da: message,
+        de: new Date()
+    }
+    data1.push(dataJSON)
+    const datame = JSON.stringify(data1)
+    fs.writeFileSync('data.json', datame)
+}
+const loadNotes = () => {
+    try {
+        const dataBuffer = fs.readFileSync('notes.json')
+        const dataJSON = dataBuffer.toString()
+        return JSON.parse(dataJSON)
+    } catch (e) {
+        return []
+    }
+}
